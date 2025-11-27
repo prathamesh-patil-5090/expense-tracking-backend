@@ -132,11 +132,12 @@ class ProfileViewSet(viewsets.ModelViewSet):
         }, status=HTTP_200_OK)
 
 class RefreshViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     serializer_class = TokenRefreshSerializer
     queryset = User.objects.none()
-
-    def post(self, request):
+    
+    @action(detail=False, methods=["post"], url_path="me", permission_classes=[AllowAny])
+    def me(self, request):
         refresh_token = request.data.get("refresh") or request.COOKIES.get("refresh_token")
         if not refresh_token:
             return Response({"detail": "Refresh token is required."}, status=HTTP_400_BAD_REQUEST)
@@ -144,7 +145,6 @@ class RefreshViewSet(viewsets.ModelViewSet):
         try:
             serializer = self.get_serializer(data={"refresh": refresh_token})
             serializer.is_valid(raise_exception=True)
-
             access_token = serializer.validated_data["access"]
             new_refresh_token = serializer.validated_data.get("refresh", refresh_token)
 
