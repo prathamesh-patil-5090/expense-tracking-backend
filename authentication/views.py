@@ -14,6 +14,8 @@ from authentication.serializers import (
     RegisterSerializer,
     UserSerializer,
 )
+from tracker.models import Expenses
+from tracker.serializers import ExpenseSerializer
 
 from .models import User
 
@@ -126,16 +128,24 @@ class ProfileViewSet(viewsets.ModelViewSet):
 
     def list(self, request):
         serializer = self.get_serializer(request.user)
+        expenses = Expenses.objects.filter(user=request.user)
+        expenses_data = ExpenseSerializer(expenses, many=True).data
+        total_expense = 0
+        for item_data in expenses:
+            total_expense = total_expense + item_data.expense_total_price - item_data.expense_paid
+            
         return Response({
             "message" : "User fetched successfully",
-            "user" : serializer.data
+            "user" : serializer.data,
+            "expenses" : expenses_data,
+            "total_expense": total_expense
         }, status=HTTP_200_OK)
 
 class RefreshViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
     serializer_class = TokenRefreshSerializer
     queryset = User.objects.none()
-    
+
     @action(detail=False, methods=["post"], url_path="me", permission_classes=[AllowAny])
     def me(self, request):
         refresh_token = request.data.get("refresh") or request.COOKIES.get("refresh_token")
